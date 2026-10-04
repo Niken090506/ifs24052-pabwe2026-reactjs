@@ -57,7 +57,7 @@ export default function LoginPage() {
       </p>
       <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
         <FormField
-          id="login-email"
+          id="login-email-input"
           label="Email"
           type="email"
           name="email"
@@ -68,7 +68,7 @@ export default function LoginPage() {
           error={errors.email}
         />
         <FormField
-          id="login-password"
+          id="login-password-input"
           label="Kata sandi"
           type="password"
           name="password"
@@ -79,6 +79,7 @@ export default function LoginPage() {
           error={errors.password}
         />
         <button
+          id="login-submit-button"
           type="submit"
           disabled={submitting}
           className="w-full rounded-lg bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-800 disabled:opacity-70"
