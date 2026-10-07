@@ -1,23 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import todoApi from "./todoApi";
+import lostFoundApi from "./lostFoundApi";
 import apiHelper from "../../../helpers/apiHelper";
 
-describe("todoApi", () => {
+describe("lostFoundApi", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe("postTodo", () => {
-    it("should create new todo and return data", async () => {
+  describe("postLostFound", () => {
+    it("should create new lostFound and return message", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "success",
-          data: { todo_id: 10 },
+          message: "Berhasil menambahkan laporan",
         }),
       });
 
-      const res = await todoApi.postTodo("Title", "Description");
-      expect(res).toEqual({ todo_id: 10 });
+      const res = await lostFoundApi.postLostFound("Title", "Description", "lost");
+      expect(res).toBe("Berhasil menambahkan laporan");
     });
 
     it("should throw error if creation fails", async () => {
@@ -28,7 +28,7 @@ describe("todoApi", () => {
         }),
       });
 
-      await expect(todoApi.postTodo("", "")).rejects.toThrow("Data tidak valid");
+      await expect(lostFoundApi.postLostFound("", "", "lost")).rejects.toThrow("Data tidak valid");
     });
 
     it("should use fallback error message when missing", async () => {
@@ -38,11 +38,11 @@ describe("todoApi", () => {
         }),
       });
 
-      await expect(todoApi.postTodo("", "")).rejects.toThrow("Gagal menambahkan todo");
+      await expect(lostFoundApi.postLostFound("", "", "lost")).rejects.toThrow("Gagal menambahkan laporan");
     });
   });
 
-  describe("postTodoCover", () => {
+  describe("postLostFoundCover", () => {
     it("should upload cover with FormData and return message on success", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
@@ -52,7 +52,7 @@ describe("todoApi", () => {
       });
 
       const dummyFile = new File(["dummy"], "cover.jpg", { type: "image/jpeg" });
-      const msg = await todoApi.postTodoCover(1, dummyFile);
+      const msg = await lostFoundApi.postLostFoundCover(1, dummyFile);
       expect(msg).toBe("Berhasil mengubah cover");
     });
 
@@ -60,16 +60,16 @@ describe("todoApi", () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "success",
-          message: "Berhasil",
+          message: "Berhasil mengubah cover",
         }),
       });
 
       const dummyBlob = new Blob(["dummy"], { type: "image/jpeg" });
-      const msg = await todoApi.postTodoCover(1, dummyBlob);
-      expect(msg).toBe("Berhasil");
+      const msg = await lostFoundApi.postLostFoundCover(1, dummyBlob);
+      expect(msg).toBe("Berhasil mengubah cover");
     });
 
-    it("should throw error on upload cover fail", async () => {
+    it("should throw error on upload failure", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "fail",
@@ -77,8 +77,8 @@ describe("todoApi", () => {
         }),
       });
 
-      const dummyFile = new File(["dummy"], "cover.jpg");
-      await expect(todoApi.postTodoCover(1, dummyFile)).rejects.toThrow(
+      const dummyFile = new File(["dummy"], "cover.jpg", { type: "image/jpeg" });
+      await expect(lostFoundApi.postLostFoundCover(1, dummyFile)).rejects.toThrow(
         "Format tidak didukung"
       );
     });
@@ -90,47 +90,47 @@ describe("todoApi", () => {
         }),
       });
 
-      const dummyFile = new File(["dummy"], "cover.jpg");
-      await expect(todoApi.postTodoCover(1, dummyFile)).rejects.toThrow(
+      const dummyFile = new File(["dummy"], "cover.jpg", { type: "image/jpeg" });
+      await expect(lostFoundApi.postLostFoundCover(1, dummyFile)).rejects.toThrow(
         "Gagal mengubah cover"
       );
     });
   });
 
-  describe("putTodo", () => {
-    it("should update todo and return message on success", async () => {
+  describe("putLostFound", () => {
+    it("should update lostFound and return message on success", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "success",
-          message: "Berhasil mengubah data",
+          message: "Berhasil mengubah laporan",
         }),
       });
 
-      const msg = await todoApi.putTodo(1, "Updated", "Desc", true);
-      expect(msg).toBe("Berhasil mengubah data");
+      const msg = await lostFoundApi.putLostFound(1, "Updated", "Desc", "found", true);
+      expect(msg).toBe("Berhasil mengubah laporan");
     });
 
-    it("should correctly handle boolean false for is_finished", async () => {
+    it("should handle completion false properly", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "success",
-          message: "Berhasil mengubah data",
+          message: "Berhasil mengubah laporan",
         }),
       });
 
-      const msg = await todoApi.putTodo(1, "Updated", "Desc", false);
-      expect(msg).toBe("Berhasil mengubah data");
+      const msg = await lostFoundApi.putLostFound(1, "Updated", "Desc", "lost", false);
+      expect(msg).toBe("Berhasil mengubah laporan");
     });
 
     it("should throw error on update failure", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "fail",
-          message: "Gagal update todo",
+          message: "Gagal update laporan",
         }),
       });
 
-      await expect(todoApi.putTodo(1, "", "", false)).rejects.toThrow("Gagal update todo");
+      await expect(lostFoundApi.putLostFound(1, "", "", "lost", false)).rejects.toThrow("Gagal update laporan");
     });
 
     it("should use fallback error message when missing", async () => {
@@ -140,50 +140,61 @@ describe("todoApi", () => {
         }),
       });
 
-      await expect(todoApi.putTodo(1, "", "", false)).rejects.toThrow("Gagal mengubah todo");
+      await expect(lostFoundApi.putLostFound(1, "", "", "lost", false)).rejects.toThrow("Gagal mengubah laporan");
     });
   });
 
-  describe("getTodos", () => {
-    it("should fetch all todos without filter", async () => {
-      const mockTodos = [{ id: 1, title: "Todo 1" }];
+  describe("getLostFounds", () => {
+    it("should fetch all lost-founds without filter", async () => {
+      const mockList = [{ id: 1, title: "Lost 1" }];
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "success",
-          data: { todos: mockTodos },
+          data: { lost_founds: mockList },
         }),
       });
 
-      const todos = await todoApi.getTodos();
-      expect(todos).toEqual(mockTodos);
+      const items = await lostFoundApi.getLostFounds();
+      expect(items).toEqual(mockList);
     });
 
-    it("should fetch filtered todos when is_finished parameter provided", async () => {
-      const mockTodos = [{ id: 2, title: "Todo 2", is_finished: 1 }];
+    it("should fetch filtered lost-founds when parameters provided", async () => {
+      const mockList = [{ id: 2, title: "Found 2", status: "found" }];
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "success",
-          data: { todos: mockTodos },
+          data: { lost_founds: mockList },
         }),
       });
 
-      const todos = await todoApi.getTodos("1");
-      expect(todos).toEqual(mockTodos);
+      const items = await lostFoundApi.getLostFounds({ status: "found", is_completed: 1, empty: "" });
+      expect(items).toEqual(mockList);
     });
 
-    it("should return empty array if data.todos is missing", async () => {
-      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
+    it("should fallback to lostFounds camelCase or empty array if missing", async () => {
+      const mockList = [{ id: 3, title: "CamelCase" }];
+      vi.spyOn(apiHelper, "fetchData").mockResolvedValueOnce({
         json: async () => ({
           status: "success",
-          data: {},
+          data: { lostFounds: mockList },
         }),
       });
 
-      const todos = await todoApi.getTodos();
-      expect(todos).toEqual([]);
+      let items = await lostFoundApi.getLostFounds();
+      expect(items).toEqual(mockList);
+
+      vi.spyOn(apiHelper, "fetchData").mockResolvedValueOnce({
+        json: async () => ({
+          status: "success",
+          data: null,
+        }),
+      });
+
+      items = await lostFoundApi.getLostFounds();
+      expect(items).toEqual([]);
     });
 
-    it("should throw error on fetch todos fail", async () => {
+    it("should throw error on fetch failure", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "fail",
@@ -191,7 +202,7 @@ describe("todoApi", () => {
         }),
       });
 
-      await expect(todoApi.getTodos()).rejects.toThrow("Akses tidak diizinkan");
+      await expect(lostFoundApi.getLostFounds()).rejects.toThrow("Akses tidak diizinkan");
     });
 
     it("should use fallback error message when missing", async () => {
@@ -201,33 +212,56 @@ describe("todoApi", () => {
         }),
       });
 
-      await expect(todoApi.getTodos()).rejects.toThrow("Gagal mengambil data todo");
+      await expect(lostFoundApi.getLostFounds()).rejects.toThrow("Gagal mengambil data laporan");
     });
   });
 
-  describe("getTodoById", () => {
-    it("should return single todo object on success", async () => {
-      const mockTodo = { id: 5, title: "Single" };
+  describe("getLostFoundById", () => {
+    it("should return single lost-found object on success", async () => {
+      const mockItem = { id: 5, title: "Single" };
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "success",
-          data: { todo: mockTodo },
+          data: { lost_found: mockItem },
         }),
       });
 
-      const res = await todoApi.getTodoById(5);
-      expect(res).toEqual(mockTodo);
+      const res = await lostFoundApi.getLostFoundById(5);
+      expect(res).toEqual(mockItem);
     });
 
-    it("should throw error on detail fail", async () => {
+    it("should fallback to lostFound camelCase or null if missing", async () => {
+      const mockItem = { id: 6, title: "Camel" };
+      vi.spyOn(apiHelper, "fetchData").mockResolvedValueOnce({
+        json: async () => ({
+          status: "success",
+          data: { lostFound: mockItem },
+        }),
+      });
+
+      let res = await lostFoundApi.getLostFoundById(6);
+      expect(res).toEqual(mockItem);
+
+      vi.spyOn(apiHelper, "fetchData").mockResolvedValueOnce({
+        json: async () => ({
+          status: "success",
+          data: null,
+        }),
+      });
+
+      res = await lostFoundApi.getLostFoundById(6);
+      expect(res).toBeNull();
+    });
+
+    it("should throw error when not found", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "fail",
-          message: "Todo tidak ditemukan",
+          message: "Laporan tidak ditemukan",
         }),
       });
 
-      await expect(todoApi.getTodoById(999)).rejects.toThrow("Todo tidak ditemukan");
+      await expect(lostFoundApi.getLostFoundById(999)).rejects.toThrow("Laporan tidak ditemukan");
     });
 
     it("should use fallback error message when missing", async () => {
@@ -237,32 +271,32 @@ describe("todoApi", () => {
         }),
       });
 
-      await expect(todoApi.getTodoById(999)).rejects.toThrow("Gagal mengambil detail todo");
+      await expect(lostFoundApi.getLostFoundById(999)).rejects.toThrow("Gagal mengambil detail laporan");
     });
   });
 
-  describe("deleteTodo", () => {
-    it("should delete todo and return message on success", async () => {
+  describe("deleteLostFound", () => {
+    it("should delete and return message on success", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "success",
-          message: "Berhasil menghapus data",
+          message: "Berhasil menghapus laporan",
         }),
       });
 
-      const msg = await todoApi.deleteTodo(1);
-      expect(msg).toBe("Berhasil menghapus data");
+      const msg = await lostFoundApi.deleteLostFound(1);
+      expect(msg).toBe("Berhasil menghapus laporan");
     });
 
     it("should throw error on delete fail", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "fail",
-          message: "Gagal menghapus",
+          message: "Tidak dapat menghapus",
         }),
       });
 
-      await expect(todoApi.deleteTodo(1)).rejects.toThrow("Gagal menghapus");
+      await expect(lostFoundApi.deleteLostFound(1)).rejects.toThrow("Tidak dapat menghapus");
     });
 
     it("should use fallback error message when missing", async () => {
@@ -272,7 +306,57 @@ describe("todoApi", () => {
         }),
       });
 
-      await expect(todoApi.deleteTodo(1)).rejects.toThrow("Gagal menghapus todo");
+      await expect(lostFoundApi.deleteLostFound(1)).rejects.toThrow("Gagal menghapus laporan");
+    });
+  });
+
+  describe("getStatsDaily", () => {
+    it("should fetch daily stats", async () => {
+      const mockDaily = [{ date: "2026-10-01", total: 3 }];
+      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
+        json: async () => ({
+          status: "success",
+          data: mockDaily,
+        }),
+      });
+
+      const res = await lostFoundApi.getStatsDaily();
+      expect(res).toEqual(mockDaily);
+    });
+
+    it("should throw error on fail", async () => {
+      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
+        json: async () => ({
+          status: "fail",
+        }),
+      });
+
+      await expect(lostFoundApi.getStatsDaily()).rejects.toThrow("Gagal mengambil statistik harian");
+    });
+  });
+
+  describe("getStatsMonthly", () => {
+    it("should fetch monthly stats", async () => {
+      const mockMonthly = [{ month: "2026-10", total: 10 }];
+      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
+        json: async () => ({
+          status: "success",
+          data: mockMonthly,
+        }),
+      });
+
+      const res = await lostFoundApi.getStatsMonthly();
+      expect(res).toEqual(mockMonthly);
+    });
+
+    it("should throw error on fail", async () => {
+      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
+        json: async () => ({
+          status: "fail",
+        }),
+      });
+
+      await expect(lostFoundApi.getStatsMonthly()).rejects.toThrow("Gagal mengambil statistik bulanan");
     });
   });
 });

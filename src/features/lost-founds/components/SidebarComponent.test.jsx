@@ -5,36 +5,40 @@ import { renderWithProviders } from "../../../test-utils";
 
 describe("SidebarComponent", () => {
   it("should render navigation links properly", () => {
-    const onCloseMobile = vi.fn();
-    renderWithProviders(
-      <SidebarComponent isSidebarOpen={false} onCloseMobile={onCloseMobile} />
-    );
+    const onClose = vi.fn();
+    renderWithProviders(<SidebarComponent isOpen={false} onClose={onClose} />);
 
-    expect(screen.getByText("Semua Todo")).toBeInTheDocument();
-    expect(screen.getByText("Semua Pengguna")).toBeInTheDocument();
+    expect(screen.getByText("Laporan")).toBeInTheDocument();
+    expect(screen.getByText("Statistik")).toBeInTheDocument();
+    expect(screen.getByText("Pengguna")).toBeInTheDocument();
     expect(screen.getByText("Profil Saya")).toBeInTheDocument();
   });
 
-  it("should render backdrop and call onCloseMobile when backdrop clicked on mobile", () => {
-    const onCloseMobile = vi.fn();
-    renderWithProviders(
-      <SidebarComponent isSidebarOpen={true} onCloseMobile={onCloseMobile} />
-    );
+  it("should render backdrop and call onClose when backdrop clicked on mobile", () => {
+    const onClose = vi.fn();
+    renderWithProviders(<SidebarComponent isOpen={true} onClose={onClose} />);
 
-    const backdrop = screen.getByTestId("sidebar-backdrop");
+    const backdrop = screen.getByRole("button", { name: "Tutup menu navigasi" });
     expect(backdrop).toBeInTheDocument();
     fireEvent.click(backdrop);
-    expect(onCloseMobile).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it("should call onCloseMobile when clicking navigation link", () => {
-    const onCloseMobile = vi.fn();
-    renderWithProviders(
-      <SidebarComponent isSidebarOpen={true} onCloseMobile={onCloseMobile} />
-    );
+  it("should call onClose when clicking close button in mobile header", () => {
+    const onClose = vi.fn();
+    renderWithProviders(<SidebarComponent isOpen={true} onClose={onClose} />);
 
-    const link = screen.getByText("Semua Pengguna");
+    const closeBtn = screen.getByRole("button", { name: "Tutup menu" });
+    fireEvent.click(closeBtn);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("should call onClose when clicking navigation link", () => {
+    const onClose = vi.fn();
+    renderWithProviders(<SidebarComponent isOpen={true} onClose={onClose} />);
+
+    const link = screen.getByText("Pengguna");
     fireEvent.click(link);
-    expect(onCloseMobile).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
   });
 });

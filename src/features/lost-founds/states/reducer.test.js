@@ -1,86 +1,147 @@
 import { describe, it, expect } from "vitest";
 import {
-  todosReducer,
-  todoReducer,
-  isTodoReducer,
-  isTodoAddReducer,
-  isTodoAddedReducer,
-  isTodoChangeReducer,
-  isTodoChangedReducer,
-  isTodoChangeCoverReducer,
-  isTodoChangedCoverReducer,
-  isTodoDeleteReducer,
-  isTodoDeletedReducer,
+  lostFoundsReducer,
+  lostFoundReducer,
+  lostFoundStatsReducer,
+  isLostFoundReducer,
+  isLostFoundAddReducer,
+  isLostFoundAddedReducer,
+  isLostFoundChangeReducer,
+  isLostFoundChangedReducer,
+  isLostFoundChangeCoverReducer,
+  isLostFoundChangedCoverReducer,
+  isLostFoundDeleteReducer,
+  isLostFoundDeletedReducer,
 } from "./reducer";
 import { ActionType } from "./action";
 
-describe("todos reducer", () => {
-  it("should return the default state for unknown actions", () => {
-    expect(todosReducer(undefined, {})).toEqual([]);
-    expect(todoReducer(undefined, {})).toBeNull();
-    expect(isTodoReducer(undefined, {})).toBe(false);
-    expect(isTodoAddReducer(undefined, {})).toBe(false);
-    expect(isTodoAddedReducer(undefined, {})).toBe(false);
-    expect(isTodoChangeReducer(undefined, {})).toBe(false);
-    expect(isTodoChangedReducer(undefined, {})).toBe(false);
-    expect(isTodoChangeCoverReducer(undefined, {})).toBe(false);
-    expect(isTodoChangedCoverReducer(undefined, {})).toBe(false);
-    expect(isTodoDeleteReducer(undefined, {})).toBe(false);
-    expect(isTodoDeletedReducer(undefined, {})).toBe(false);
+describe("lost found reducers", () => {
+  it("should return default states for unknown actions", () => {
+    expect(lostFoundsReducer(undefined, {})).toEqual([]);
+    expect(lostFoundReducer(undefined, {})).toBeNull();
+    expect(lostFoundStatsReducer(undefined, {})).toBeNull();
+
+    expect(isLostFoundReducer(undefined, {})).toBe(false);
+    expect(isLostFoundAddReducer(undefined, {})).toBe(false);
+    expect(isLostFoundAddedReducer(undefined, {})).toBe(false);
+    expect(isLostFoundChangeReducer(undefined, {})).toBe(false);
+    expect(isLostFoundChangedReducer(undefined, {})).toBe(false);
+    expect(isLostFoundChangeCoverReducer(undefined, {})).toBe(false);
+    expect(isLostFoundChangedCoverReducer(undefined, {})).toBe(false);
+    expect(isLostFoundDeleteReducer(undefined, {})).toBe(false);
+    expect(isLostFoundDeletedReducer(undefined, {})).toBe(false);
   });
 
-  it("should handle SET_TODOS", () => {
-    const action = { type: ActionType.SET_TODOS, payload: [{ id: 1 }] };
-    expect(todosReducer([], action)).toEqual([{ id: 1 }]);
+  it("should handle SET_LOST_FOUNDS", () => {
+    const action = {
+      type: ActionType.SET_LOST_FOUNDS,
+      payload: [{ id: 1 }],
+    };
+
+    expect(lostFoundsReducer([], action)).toEqual([{ id: 1 }]);
   });
 
-  it("should handle SET_TODO", () => {
-    const action = { type: ActionType.SET_TODO, payload: { id: 1 } };
-    expect(todoReducer(null, action)).toEqual({ id: 1 });
+  it("should handle SET_LOST_FOUND", () => {
+    const action = {
+      type: ActionType.SET_LOST_FOUND,
+      payload: { id: 1 },
+    };
+
+    expect(lostFoundReducer(null, action)).toEqual({ id: 1 });
   });
 
-  it("should handle SET_IS_TODO", () => {
-    const action = { type: ActionType.SET_IS_TODO, payload: true };
-    expect(isTodoReducer(false, action)).toBe(true);
+  it("should handle SET_LOST_FOUND_STATS", () => {
+    const stats = {
+      daily: [{ date: "2026-10-01", total: 2 }],
+      monthly: [{ month: "2026-10", total: 5 }],
+    };
+
+    const action = {
+      type: ActionType.SET_LOST_FOUND_STATS,
+      payload: stats,
+    };
+
+    expect(lostFoundStatsReducer(null, action)).toEqual(stats);
   });
 
-  it("should handle SET_IS_TODO_ADD", () => {
-    const action = { type: ActionType.SET_IS_TODO_ADD, payload: true };
-    expect(isTodoAddReducer(false, action)).toBe(true);
+  it("should handle SET_IS_LOST_FOUND", () => {
+    const action = {
+      type: ActionType.SET_IS_LOST_FOUND,
+      payload: true,
+    };
+
+    expect(isLostFoundReducer(false, action)).toBe(true);
   });
 
-  it("should handle SET_IS_TODO_ADDED", () => {
-    const action = { type: ActionType.SET_IS_TODO_ADDED, payload: true };
-    expect(isTodoAddedReducer(false, action)).toBe(true);
+  it("should handle SET_IS_LOST_FOUND_ADD", () => {
+    const action = {
+      type: ActionType.SET_IS_LOST_FOUND_ADD,
+      payload: true,
+    };
+
+    expect(isLostFoundAddReducer(false, action)).toBe(true);
   });
 
-  it("should handle SET_IS_TODO_CHANGE", () => {
-    const action = { type: ActionType.SET_IS_TODO_CHANGE, payload: true };
-    expect(isTodoChangeReducer(false, action)).toBe(true);
+  it("should handle SET_IS_LOST_FOUND_ADDED", () => {
+    const action = {
+      type: ActionType.SET_IS_LOST_FOUND_ADDED,
+      payload: true,
+    };
+
+    expect(isLostFoundAddedReducer(false, action)).toBe(true);
   });
 
-  it("should handle SET_IS_TODO_CHANGED", () => {
-    const action = { type: ActionType.SET_IS_TODO_CHANGED, payload: true };
-    expect(isTodoChangedReducer(false, action)).toBe(true);
+  it("should handle SET_IS_LOST_FOUND_CHANGE", () => {
+    const action = {
+      type: ActionType.SET_IS_LOST_FOUND_CHANGE,
+      payload: true,
+    };
+
+    expect(isLostFoundChangeReducer(false, action)).toBe(true);
   });
 
-  it("should handle SET_IS_TODO_CHANGE_COVER", () => {
-    const action = { type: ActionType.SET_IS_TODO_CHANGE_COVER, payload: true };
-    expect(isTodoChangeCoverReducer(false, action)).toBe(true);
+  it("should handle SET_IS_LOST_FOUND_CHANGED", () => {
+    const action = {
+      type: ActionType.SET_IS_LOST_FOUND_CHANGED,
+      payload: true,
+    };
+
+    expect(isLostFoundChangedReducer(false, action)).toBe(true);
   });
 
-  it("should handle SET_IS_TODO_CHANGED_COVER", () => {
-    const action = { type: ActionType.SET_IS_TODO_CHANGED_COVER, payload: true };
-    expect(isTodoChangedCoverReducer(false, action)).toBe(true);
+  it("should handle SET_IS_LOST_FOUND_CHANGE_COVER", () => {
+    const action = {
+      type: ActionType.SET_IS_LOST_FOUND_CHANGE_COVER,
+      payload: true,
+    };
+
+    expect(isLostFoundChangeCoverReducer(false, action)).toBe(true);
   });
 
-  it("should handle SET_IS_TODO_DELETE", () => {
-    const action = { type: ActionType.SET_IS_TODO_DELETE, payload: true };
-    expect(isTodoDeleteReducer(false, action)).toBe(true);
+  it("should handle SET_IS_LOST_FOUND_CHANGED_COVER", () => {
+    const action = {
+      type: ActionType.SET_IS_LOST_FOUND_CHANGED_COVER,
+      payload: true,
+    };
+
+    expect(isLostFoundChangedCoverReducer(false, action)).toBe(true);
   });
 
-  it("should handle SET_IS_TODO_DELETED", () => {
-    const action = { type: ActionType.SET_IS_TODO_DELETED, payload: true };
-    expect(isTodoDeletedReducer(false, action)).toBe(true);
+  it("should handle SET_IS_LOST_FOUND_DELETE", () => {
+    const action = {
+      type: ActionType.SET_IS_LOST_FOUND_DELETE,
+      payload: true,
+    };
+
+    expect(isLostFoundDeleteReducer(false, action)).toBe(true);
+  });
+
+  it("should handle SET_IS_LOST_FOUND_DELETED", () => {
+    const action = {
+      type: ActionType.SET_IS_LOST_FOUND_DELETED,
+      payload: true,
+    };
+
+    expect(isLostFoundDeletedReducer(false, action)).toBe(true);
   });
 });

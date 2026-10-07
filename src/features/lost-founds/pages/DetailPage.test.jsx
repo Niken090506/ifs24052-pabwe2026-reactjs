@@ -3,7 +3,7 @@ import { screen, fireEvent, waitFor } from "@testing-library/react";
 import DetailPage from "./DetailPage";
 import { renderWithProviders } from "../../../test-utils";
 import * as toolsHelper from "../../../helpers/toolsHelper";
-import * as todoAction from "../states/action";
+import * as lostFoundAction from "../states/action";
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -11,118 +11,171 @@ vi.mock("react-router-dom", async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useParams: () => ({ todoId: "1" }),
+    useParams: () => ({ id: "1" }),
   };
 });
 
 describe("DetailPage", () => {
-  const mockProfile = { id: 1, name: "Abdullah", email: "abdul@del.org" };
-  const mockTodo = {
+  const mockProfile = { id: 10, name: "Niken", email: "niken@del.ac.id" };
+  const mockLostFound = {
     id: 1,
-    title: "Detail Todo Judul",
-    description: "Detail Todo Deskripsi",
-    is_finished: 1,
+    title: "Laptop Hilang",
+    description: "Laptop ASUS tertinggal di lab",
+    status: "lost",
+    is_completed: 0,
     cover: "https://example.com/cover.jpg",
-    created_at: "2024-02-26T02:34:26.000000Z",
-    updated_at: "2024-02-26T02:44:47.000000Z",
+    created_at: "2026-10-01T08:00:00.000000Z",
+    user_id: 10,
+    user: {
+      id: 10,
+      name: "Niken",
+    },
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should render loading spinner if profile or todo is missing", () => {
-    renderWithProviders(<DetailPage />, {
-      preloadedState: {
-        profile: null,
-        todo: null,
-      },
-    });
+  it("should show loading state when loading and item not yet loaded", () => {
+    vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
 
-    expect(screen.queryByText("Detail Todo Judul")).not.toBeInTheDocument();
-  });
-
-  it("should render todo details correctly and support closing cover & edit modals", () => {
     renderWithProviders(<DetailPage />, {
       preloadedState: {
         profile: mockProfile,
-        todo: mockTodo,
+        lostFound: null,
+        isLostFound: true,
       },
     });
 
-    expect(screen.getByText("Detail Todo Judul")).toBeInTheDocument();
-    expect(screen.getByText("Detail Todo Deskripsi")).toBeInTheDocument();
-    expect(screen.getByText("Selesai")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Memuat detail laporan…");
+  });
+
+  it("should show not found state when not loading and lostFound is null", () => {
+    vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
+
+    renderWithProviders(<DetailPage />, {
+      preloadedState: {
+        profile: mockProfile,
+        lostFound: null,
+        isLostFound: false,
+      },
+    });
+
+    expect(screen.getByText("Laporan tidak ditemukan")).toBeInTheDocument();
+    expect(screen.getByText("Kembali ke daftar laporan")).toBeInTheDocument();
+  });
+
+  it("should render lost found details and allow opening/closing cover & change modals", () => {
+    vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
+
+    renderWithProviders(<DetailPage />, {
+      preloadedState: {
+        profile: mockProfile,
+        lostFound: mockLostFound,
+        isLostFound: false,
+      },
+    });
+
+    expect(screen.getByText("Laptop Hilang")).toBeInTheDocument();
+    expect(screen.getByText("Laptop ASUS tertinggal di lab")).toBeInTheDocument();
+    expect(screen.getByText("Hilang")).toBeInTheDocument();
+    expect(screen.getByText("Belum selesai")).toBeInTheDocument();
+    expect(screen.getByText("Niken")).toBeInTheDocument();
 
     // Open & close cover modal
-    const editCoverBtn = screen.getByTestId("edit-cover-btn");
+    const editCoverBtn = screen.getByRole("button", { name: "Ubah cover" });
     fireEvent.click(editCoverBtn);
-    expect(screen.getByTestId("change-cover-modal")).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("close-cover-modal-btn"));
-    expect(screen.queryByTestId("change-cover-modal")).not.toBeInTheDocument();
+    expect(screen.getByText("Ubah gambar cover")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tutup dialog" }));
+    expect(screen.queryByText("Ubah gambar cover")).not.toBeInTheDocument();
 
-    // Open & close edit modal
-    const editDetailBtn = screen.getByTestId("edit-detail-todo-btn");
-    fireEvent.click(editDetailBtn);
-    expect(screen.getByTestId("edit-todo-modal")).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("close-edit-modal-btn"));
-    expect(screen.queryByTestId("edit-todo-modal")).not.toBeInTheDocument();
+    // Open & close change modal
+    const editReportBtn = screen.getByRole("button", { name: "Ubah laporan" });
+    fireEvent.click(editReportBtn);
+    expect(screen.getByRole("heading", { name: "Ubah laporan" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tutup dialog" }));
+    expect(screen.queryByRole("heading", { name: "Ubah laporan" })).not.toBeInTheDocument();
   });
 
-  it("should render unfinished badge when todo is not finished and handle description fallback", () => {
+  it("should render without cover and with completed badge", () => {
+    vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
+
     renderWithProviders(<DetailPage />, {
       preloadedState: {
         profile: mockProfile,
-        todo: {
-          ...mockTodo,
-          is_finished: 0,
-          description: "",
+        lostFound: {
+          ...mockLostFound,
           cover: null,
+          is_completed: 1,
+          status: "found",
         },
+        isLostFound: false,
       },
     });
 
-    expect(screen.getByText("Sedang Proses")).toBeInTheDocument();
-    expect(screen.getByText("Tidak ada deskripsi rinci untuk todo ini.")).toBeInTheDocument();
+    expect(screen.getByText("Tanpa gambar")).toBeInTheDocument();
+    expect(screen.getByText("Selesai")).toBeInTheDocument();
+    expect(screen.getByText("Ditemukan")).toBeInTheDocument();
   });
 
-  it("should trigger confirm dialog and dispatch delete on delete button click when confirmed", async () => {
-    const deleteSpy = vi
-      .spyOn(todoAction, "asyncSetIsTodoDelete")
-      .mockReturnValue(() => {});
+  it("should hide owner buttons when current user is not the owner", () => {
+    vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
 
-    vi.spyOn(toolsHelper, "showConfirmDialog").mockResolvedValue({ isConfirmed: true });
+    renderWithProviders(<DetailPage />, {
+      preloadedState: {
+        profile: { id: 99, name: "Other" },
+        lostFound: mockLostFound,
+        isLostFound: false,
+      },
+    });
+
+    expect(screen.queryByRole("button", { name: "Ubah cover" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ubah laporan" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Hapus laporan" })).not.toBeInTheDocument();
+  });
+
+  it("should trigger confirm dialog and dispatch delete when confirmed", async () => {
+    vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
+    const deleteSpy = vi
+      .spyOn(lostFoundAction, "asyncDeleteLostFound")
+      .mockReturnValue(() => Promise.resolve(true));
+
+    vi.spyOn(toolsHelper, "showConfirmDialog").mockResolvedValue(true);
 
     renderWithProviders(<DetailPage />, {
       preloadedState: {
         profile: mockProfile,
-        todo: mockTodo,
+        lostFound: mockLostFound,
+        isLostFound: false,
       },
     });
 
-    const deleteBtn = screen.getByTestId("delete-detail-todo-btn");
+    const deleteBtn = screen.getByRole("button", { name: "Hapus laporan" });
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
-      expect(deleteSpy).toHaveBeenCalledWith(1);
+      expect(deleteSpy).toHaveBeenCalledWith("1");
+      expect(mockNavigate).toHaveBeenCalledWith("/", { replace: true });
     });
   });
 
-  it("should not dispatch delete when cancelled", async () => {
+  it("should not dispatch delete when cancelled in dialog", async () => {
+    vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
     const deleteSpy = vi
-      .spyOn(todoAction, "asyncSetIsTodoDelete")
-      .mockReturnValue(() => {});
+      .spyOn(lostFoundAction, "asyncDeleteLostFound")
+      .mockReturnValue(() => Promise.resolve(true));
 
-    vi.spyOn(toolsHelper, "showConfirmDialog").mockResolvedValue({ isConfirmed: false });
+    vi.spyOn(toolsHelper, "showConfirmDialog").mockResolvedValue(false);
 
     renderWithProviders(<DetailPage />, {
       preloadedState: {
         profile: mockProfile,
-        todo: mockTodo,
+        lostFound: mockLostFound,
+        isLostFound: false,
       },
     });
 
-    const deleteBtn = screen.getByTestId("delete-detail-todo-btn");
+    const deleteBtn = screen.getByRole("button", { name: "Hapus laporan" });
     fireEvent.click(deleteBtn);
 
     await waitFor(() => {
@@ -131,39 +184,69 @@ describe("DetailPage", () => {
     expect(deleteSpy).not.toHaveBeenCalled();
   });
 
-  it("should navigate back to home if isTodo is true and todo is null", () => {
+  it("should trigger reload when modal successfully updates", async () => {
+    const setLostFoundSpy = vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
+    vi.spyOn(lostFoundAction, "asyncChangeLostFoundCover").mockReturnValue(() => Promise.resolve(true));
+
     renderWithProviders(<DetailPage />, {
       preloadedState: {
         profile: mockProfile,
-        todo: null,
-        isTodo: true,
+        lostFound: mockLostFound,
+        isLostFound: false,
       },
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith("/");
+    // Reset spy call count from initial mount
+    setLostFoundSpy.mockClear();
+
+    // Open cover modal
+    fireEvent.click(screen.getByRole("button", { name: "Ubah cover" }));
+    const fileInput = screen.getByLabelText("Pilih gambar");
+    const validFile = new File(["dummy"], "photo.jpg", { type: "image/jpeg" });
+    fireEvent.change(fileInput, { target: { files: [validFile] } });
+    fireEvent.submit(fileInput.closest("form"));
+
+    await waitFor(() => {
+      expect(setLostFoundSpy).toHaveBeenCalledWith("1");
+    });
   });
 
-  it("should stay when isTodo is true and todo exists", () => {
+  it("should not navigate when delete action returns false", async () => {
+    vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
+    vi.spyOn(lostFoundAction, "asyncDeleteLostFound").mockReturnValue(() => Promise.resolve(false));
+    vi.spyOn(toolsHelper, "showConfirmDialog").mockResolvedValue(true);
+
+    mockNavigate.mockClear();
+
     renderWithProviders(<DetailPage />, {
       preloadedState: {
         profile: mockProfile,
-        todo: mockTodo,
-        isTodo: true,
+        lostFound: mockLostFound,
+        isLostFound: false,
       },
     });
 
-    expect(screen.getByText("Detail Todo Judul")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hapus laporan" }));
+    await waitFor(() => {
+      expect(lostFoundAction.asyncDeleteLostFound).toHaveBeenCalled();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("should navigate back to home if isTodoDeleted is true", () => {
+  it("should render fallback status label when status is unknown", () => {
+    vi.spyOn(lostFoundAction, "asyncSetLostFound").mockReturnValue(() => Promise.resolve());
+
     renderWithProviders(<DetailPage />, {
       preloadedState: {
         profile: mockProfile,
-        todo: mockTodo,
-        isTodoDeleted: true,
+        lostFound: {
+          ...mockLostFound,
+          status: "archived",
+        },
+        isLostFound: false,
       },
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith("/");
+    expect(screen.getByText("archived")).toBeInTheDocument();
   });
 });

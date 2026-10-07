@@ -56,7 +56,7 @@ export default function NavbarComponent({ profile, isSidebarOpen, onToggleSideba
           >
             <Avatar name={profile?.name} photo={profile?.photo} size="sm" />
             <span className="hidden max-w-40 truncate text-sm font-semibold text-slate-900 sm:inline">
-              {profile?.name ?? "Pengguna"}
+              {profile?.name || "Pengguna"}
             </span>
             <IconChevronDown size={16} aria-hidden="true" />
             <span className="sr-only">Menu akun</span>

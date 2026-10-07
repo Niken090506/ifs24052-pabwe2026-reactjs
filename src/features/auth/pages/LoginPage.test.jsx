@@ -1,14 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, act } from "@testing-library/react";
-import LoginPage from "./LoginPage";
+import LoginPage, { validateLogin } from "./LoginPage";
 import { renderWithProviders } from "../../../test-utils";
 import * as authAction from "../states/action";
-import * as userAction from "../../users/states/action";
-import apiHelper from "../../../helpers/apiHelper";
+
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 describe("LoginPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe("validateLogin helper", () => {
+    it("should validate empty email and password", () => {
+      const errors = validateLogin("", "");
+      expect(errors.email).toBe("Email wajib diisi.");
+      expect(errors.password).toBe("Kata sandi wajib diisi.");
+    });
+
+    it("should validate invalid email format", () => {
+      const errors = validateLogin("notanemail", "password123");
+      expect(errors.email).toBe("Format email tidak valid.");
+      expect(errors.password).toBeUndefined();
+    });
+
+    it("should return empty errors for valid input", () => {
+      const errors = validateLogin("user@delcom.org", "password123");
+      expect(Object.keys(errors).length).toBe(0);
+    });
   });
 
   it("should render inputs and handle submit", async () => {
@@ -19,17 +45,16 @@ describe("LoginPage", () => {
     renderWithProviders(<LoginPage />, {
       preloadedState: {
         isAuthLogin: false,
-        isProfile: false,
       },
     });
 
-    const emailInput = screen.getByTestId("login-email-input");
-    const passwordInput = screen.getByTestId("login-password-input");
-    const submitBtn = screen.getByTestId("login-submit-button");
+    const emailInput = screen.getByLabelText("Email");
+    const passwordInput = screen.getByLabelText("Kata sandi");
+    const submitBtn = screen.getByRole("button", { name: "Masuk" });
 
     fireEvent.change(emailInput, { target: { value: "testing@delcom.org" } });
     fireEvent.change(passwordInput, { target: { value: "123456" } });
-    
+
     await act(async () => {
       fireEvent.click(submitBtn);
     });
@@ -37,99 +62,31 @@ describe("LoginPage", () => {
     expect(loginSpy).toHaveBeenCalledWith("testing@delcom.org", "123456");
   });
 
-  it("should handle submit when token is present", async () => {
-    vi.spyOn(apiHelper, "getAccessToken").mockReturnValue("valid-token");
+  it("should not call asyncSetIsAuthLogin if validation fails", async () => {
     const loginSpy = vi
       .spyOn(authAction, "asyncSetIsAuthLogin")
       .mockReturnValue(() => Promise.resolve());
 
-    renderWithProviders(<LoginPage />, {
-      preloadedState: {
-        isAuthLogin: false,
-        isProfile: false,
-      },
-    });
+    renderWithProviders(<LoginPage />);
 
-    const emailInput = screen.getByTestId("login-email-input");
-    const passwordInput = screen.getByTestId("login-password-input");
-    const submitBtn = screen.getByTestId("login-submit-button");
-
-    fireEvent.change(emailInput, { target: { value: "token@delcom.org" } });
-    fireEvent.change(passwordInput, { target: { value: "123456" } });
-    
-    await act(async () => {
-      fireEvent.click(submitBtn);
-    });
-
-    expect(loginSpy).toHaveBeenCalledWith("token@delcom.org", "123456");
-  });
-
-  it("should handle error during form submit", async () => {
-    vi.spyOn(authAction, "asyncSetIsAuthLogin").mockReturnValue(() =>
-      Promise.reject(new Error("Login failed"))
-    );
-
-    renderWithProviders(<LoginPage />, {
-      preloadedState: {
-        isAuthLogin: false,
-        isProfile: false,
-      },
-    });
-
-    const emailInput = screen.getByTestId("login-email-input");
-    const passwordInput = screen.getByTestId("login-password-input");
-    const submitBtn = screen.getByTestId("login-submit-button");
-
-    fireEvent.change(emailInput, { target: { value: "error@delcom.org" } });
-    fireEvent.change(passwordInput, { target: { value: "123456" } });
+    const submitBtn = screen.getByRole("button", { name: "Masuk" });
 
     await act(async () => {
       fireEvent.click(submitBtn);
     });
 
-    expect(screen.getByTestId("login-submit-button")).toBeInTheDocument();
+    expect(loginSpy).not.toHaveBeenCalled();
+    expect(screen.getByText("Email wajib diisi.")).toBeInTheDocument();
+    expect(screen.getByText("Kata sandi wajib diisi.")).toBeInTheDocument();
   });
 
-  it("should trigger asyncSetProfile when login succeeds and token exists", () => {
-    vi.spyOn(apiHelper, "getAccessToken").mockReturnValue("test-token");
-    const setProfileSpy = vi
-      .spyOn(userAction, "asyncSetProfile")
-      .mockReturnValue(() => {});
-
+  it("should navigate to / when isAuthLogin is true", () => {
     renderWithProviders(<LoginPage />, {
       preloadedState: {
         isAuthLogin: true,
-        isProfile: false,
       },
     });
 
-    expect(setProfileSpy).toHaveBeenCalled();
-  });
-
-  it("should reset state when login fails or when isProfile finishes", () => {
-    vi.spyOn(apiHelper, "getAccessToken").mockReturnValue(null);
-    const setLoginActionSpy = vi.spyOn(
-      authAction,
-      "setIsAuthLoginActionCreator"
-    );
-    const setIsProfileSpy = vi.spyOn(userAction, "setIsProfile");
-
-    // Case 1: isAuthLogin true but no token
-    renderWithProviders(<LoginPage />, {
-      preloadedState: {
-        isAuthLogin: true,
-        isProfile: false,
-      },
-    });
-    expect(setLoginActionSpy).toHaveBeenCalledWith(false);
-
-    // Case 2: isProfile true
-    renderWithProviders(<LoginPage />, {
-      preloadedState: {
-        isAuthLogin: false,
-        isProfile: true,
-      },
-    });
-    expect(setIsProfileSpy).toHaveBeenCalledWith(false);
+    expect(mockNavigate).toHaveBeenCalledWith("/", { replace: true });
   });
 });

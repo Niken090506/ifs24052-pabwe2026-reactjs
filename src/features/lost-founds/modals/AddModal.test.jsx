@@ -1,99 +1,125 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import AddModal from "./AddModal";
 import { renderWithProviders } from "../../../test-utils";
-import * as toolsHelper from "../../../helpers/toolsHelper";
-import * as todoAction from "../states/action";
+import * as lostFoundAction from "../states/action";
 
 describe("AddModal", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
-  it("should not render when show is false", () => {
-    const { container } = renderWithProviders(<AddModal show={false} onClose={vi.fn()} />);
-    expect(container.firstChild).toBeNull();
+  it("should render the modal with default values", () => {
+    renderWithProviders(<AddModal onClose={vi.fn()} onSuccess={vi.fn()} />);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Tambah laporan" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Judul laporan")).toHaveValue("");
+    expect(screen.getByLabelText("Deskripsi")).toHaveValue("");
+    expect(screen.getByRole("radio", { name: "Barang hilang" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Barang ditemukan" })).not.toBeChecked();
   });
 
-  it("should show validation error if title is empty", () => {
-    const errorSpy = vi.spyOn(toolsHelper, "showErrorDialog").mockImplementation(() => {});
+  it("should update form fields when user types or changes radio", () => {
+    renderWithProviders(<AddModal onClose={vi.fn()} onSuccess={vi.fn()} />);
 
-    renderWithProviders(<AddModal show={true} onClose={vi.fn()} />);
+    const titleInput = screen.getByLabelText("Judul laporan");
+    const descInput = screen.getByLabelText("Deskripsi");
+    const foundRadio = screen.getByRole("radio", { name: "Barang ditemukan" });
 
-    const form = screen.getByTestId("add-todo-modal").querySelector("form");
-    fireEvent.submit(form);
+    fireEvent.change(titleInput, { target: { value: "Kunci Motor" } });
+    fireEvent.change(descInput, { target: { value: "Jatuh di dekat parkiran" } });
+    fireEvent.click(foundRadio);
 
-    expect(errorSpy).toHaveBeenCalledWith("Judul tidak boleh kosong");
+    expect(titleInput).toHaveValue("Kunci Motor");
+    expect(descInput).toHaveValue("Jatuh di dekat parkiran");
+    expect(foundRadio).toBeChecked();
   });
 
-  it("should show validation error if description is empty", () => {
-    const errorSpy = vi.spyOn(toolsHelper, "showErrorDialog").mockImplementation(() => {});
+  it("should validate empty title and description on submit", () => {
+    renderWithProviders(<AddModal onClose={vi.fn()} onSuccess={vi.fn()} />);
 
-    renderWithProviders(<AddModal show={true} onClose={vi.fn()} />);
+    const submitBtn = screen.getByRole("button", { name: "Simpan laporan" });
+    fireEvent.click(submitBtn);
 
-    const titleInput = screen.getByTestId("add-todo-title-input");
-    fireEvent.change(titleInput, { target: { value: "Judul Todo" } });
+    expect(screen.getByText("Judul wajib diisi.")).toBeInTheDocument();
 
-    const form = screen.getByTestId("add-todo-modal").querySelector("form");
-    fireEvent.submit(form);
+    const titleInput = screen.getByLabelText("Judul laporan");
+    fireEvent.change(titleInput, { target: { value: "Judul Valid" } });
+    fireEvent.click(submitBtn);
 
-    expect(errorSpy).toHaveBeenCalledWith("Deskripsi tidak boleh kosong");
+    expect(screen.getByText("Deskripsi wajib diisi.")).toBeInTheDocument();
   });
 
-  it("should dispatch asyncSetIsTodoAdd and call onClose on successful add", () => {
-    const asyncAddSpy = vi.spyOn(todoAction, "asyncSetIsTodoAdd").mockReturnValue(() => {});
+  it("should dispatch asyncAddLostFound, call onSuccess and onClose on successful add", async () => {
+    const addSpy = vi
+      .spyOn(lostFoundAction, "asyncAddLostFound")
+      .mockReturnValue(() => Promise.resolve(true));
+
     const onClose = vi.fn();
+    const onSuccess = vi.fn();
 
-    renderWithProviders(<AddModal show={true} onClose={onClose} />, {
-      preloadedState: {
-        isTodoAdd: false,
-        isTodoAdded: false,
-      },
+    renderWithProviders(<AddModal onClose={onClose} onSuccess={onSuccess} />);
+
+    const titleInput = screen.getByLabelText("Judul laporan");
+    const descInput = screen.getByLabelText("Deskripsi");
+
+    fireEvent.change(titleInput, { target: { value: "Jaket Hitam" } });
+    fireEvent.change(descInput, { target: { value: "Ditemukan di kantin" } });
+
+    const submitBtn = screen.getByRole("button", { name: "Simpan laporan" });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledWith("Jaket Hitam", "Ditemukan di kantin", "lost");
+      expect(onSuccess).toHaveBeenCalled();
+      expect(onClose).toHaveBeenCalled();
     });
-
-    const titleInput = screen.getByTestId("add-todo-title-input");
-    const descInput = screen.getByTestId("add-todo-description-input");
-
-    fireEvent.change(titleInput, { target: { value: "Belajar Vitest" } });
-    fireEvent.change(descInput, { target: { value: "Belajar sampai coverage 100%" } });
-
-    const form = screen.getByTestId("add-todo-modal").querySelector("form");
-    fireEvent.submit(form);
-
-    expect(asyncAddSpy).toHaveBeenCalledWith("Belajar Vitest", "Belajar sampai coverage 100%");
-
-    // Simulate completion from store
-    renderWithProviders(<AddModal show={true} onClose={onClose} />, {
-      preloadedState: {
-        isTodoAdd: true,
-        isTodoAdded: true,
-      },
-    });
-
-    expect(onClose).toHaveBeenCalled();
   });
 
-  it("should handle isTodoAdd true when isTodoAdded is false", () => {
-    renderWithProviders(<AddModal show={true} onClose={vi.fn()} />, {
-      preloadedState: {
-        isTodoAdd: true,
-        isTodoAdded: false,
-      },
-    });
+  it("should not call onSuccess or onClose when asyncAddLostFound returns false", async () => {
+    vi.spyOn(lostFoundAction, "asyncAddLostFound").mockReturnValue(
+      () => Promise.resolve(false)
+    );
 
-    expect(screen.getByTestId("add-todo-modal")).toBeInTheDocument();
-  });
-
-  it("should close modal when close or cancel button clicked", () => {
     const onClose = vi.fn();
-    renderWithProviders(<AddModal show={true} onClose={onClose} />);
+    const onSuccess = vi.fn();
 
-    const closeBtn = screen.getByTestId("close-add-modal-btn");
-    fireEvent.click(closeBtn);
+    renderWithProviders(<AddModal onClose={onClose} onSuccess={onSuccess} />);
+
+    const titleInput = screen.getByLabelText("Judul laporan");
+    const descInput = screen.getByLabelText("Deskripsi");
+
+    fireEvent.change(titleInput, { target: { value: "Jaket Hitam" } });
+    fireEvent.change(descInput, { target: { value: "Ditemukan di kantin" } });
+
+    const submitBtn = screen.getByRole("button", { name: "Simpan laporan" });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(onSuccess).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+  });
+
+  it("should disable submit button when isLostFoundAdd is true", () => {
+    renderWithProviders(<AddModal onClose={vi.fn()} onSuccess={vi.fn()} />, {
+      preloadedState: {
+        isLostFoundAdd: true,
+      },
+    });
+
+    expect(screen.getByRole("button", { name: "Menyimpan…" })).toBeDisabled();
+  });
+
+  it("should call onClose when close or cancel button is clicked", () => {
+    const onClose = vi.fn();
+    renderWithProviders(<AddModal onClose={onClose} onSuccess={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Tutup dialog" }));
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    const cancelBtn = screen.getByTestId("cancel-add-modal-btn");
-    fireEvent.click(cancelBtn);
+    fireEvent.click(screen.getByRole("button", { name: "Batal" }));
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 });

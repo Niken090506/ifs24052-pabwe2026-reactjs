@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, act } from "@testing-library/react";
-import RegisterPage from "./RegisterPage";
+import RegisterPage, { validateRegister } from "./RegisterPage";
 import { renderWithProviders } from "../../../test-utils";
 import * as authAction from "../states/action";
 
@@ -18,6 +18,31 @@ describe("RegisterPage", () => {
     vi.clearAllMocks();
   });
 
+  describe("validateRegister helper", () => {
+    it("should validate empty fields", () => {
+      const errors = validateRegister("", "", "", "");
+      expect(errors.name).toBe("Nama wajib diisi.");
+      expect(errors.email).toBe("Email wajib diisi.");
+      expect(errors.password).toBe("Kata sandi minimal 6 karakter.");
+    });
+
+    it("should validate invalid email and password length", () => {
+      const errors = validateRegister("User", "invalid-email", "123", "123");
+      expect(errors.email).toBe("Format email tidak valid.");
+      expect(errors.password).toBe("Kata sandi minimal 6 karakter.");
+    });
+
+    it("should validate password mismatch", () => {
+      const errors = validateRegister("User", "user@delcom.org", "123456", "different");
+      expect(errors.confirmPassword).toBe("Konfirmasi kata sandi tidak sama.");
+    });
+
+    it("should return empty errors for valid input", () => {
+      const errors = validateRegister("User", "user@delcom.org", "123456", "123456");
+      expect(Object.keys(errors).length).toBe(0);
+    });
+  });
+
   it("should render inputs and dispatch registration", async () => {
     const registerSpy = vi
       .spyOn(authAction, "asyncSetIsAuthRegister")
@@ -29,15 +54,17 @@ describe("RegisterPage", () => {
       },
     });
 
-    const nameInput = screen.getByTestId("register-name-input");
-    const emailInput = screen.getByTestId("register-email-input");
-    const passwordInput = screen.getByTestId("register-password-input");
-    const submitBtn = screen.getByTestId("register-submit-button");
+    const nameInput = screen.getByLabelText("Nama lengkap");
+    const emailInput = screen.getByLabelText("Email");
+    const passwordInput = screen.getByLabelText("Kata sandi");
+    const confirmInput = screen.getByLabelText("Konfirmasi kata sandi");
+    const submitBtn = screen.getByRole("button", { name: "Daftar" });
 
     fireEvent.change(nameInput, { target: { value: "Delcom User" } });
     fireEvent.change(emailInput, { target: { value: "user@delcom.org" } });
     fireEvent.change(passwordInput, { target: { value: "password123" } });
-    
+    fireEvent.change(confirmInput, { target: { value: "password123" } });
+
     await act(async () => {
       fireEvent.click(submitBtn);
     });
@@ -49,6 +76,23 @@ describe("RegisterPage", () => {
     );
   });
 
+  it("should not dispatch registration if validation fails", async () => {
+    const registerSpy = vi
+      .spyOn(authAction, "asyncSetIsAuthRegister")
+      .mockReturnValue(() => Promise.resolve());
+
+    renderWithProviders(<RegisterPage />);
+
+    const submitBtn = screen.getByRole("button", { name: "Daftar" });
+
+    await act(async () => {
+      fireEvent.click(submitBtn);
+    });
+
+    expect(registerSpy).not.toHaveBeenCalled();
+    expect(screen.getByText("Nama wajib diisi.")).toBeInTheDocument();
+  });
+
   it("should reset form fields and navigate to /auth/login on isAuthRegister success", () => {
     renderWithProviders(<RegisterPage />, {
       preloadedState: {
@@ -56,24 +100,6 @@ describe("RegisterPage", () => {
       },
     });
 
-    expect(screen.getByTestId("register-submit-button")).toBeInTheDocument();
-    expect(mockNavigate).toHaveBeenCalledWith("/auth/login");
-  });
-
-  it("should handle error state when isAuthRegister is false while loading", () => {
-    const { store } = renderWithProviders(<RegisterPage />, {
-      preloadedState: {
-        isAuthRegister: null,
-      },
-    });
-
-    const submitBtn = screen.getByTestId("register-submit-button");
-    fireEvent.click(submitBtn);
-
-    // Simulate action failure wrapped in act
-    act(() => {
-      store.dispatch(authAction.setIsAuthRegisterActionCreator(false));
-    });
-    expect(screen.getByTestId("register-submit-button")).toBeEnabled();
+    expect(mockNavigate).toHaveBeenCalledWith("/auth/login", { replace: true });
   });
 });

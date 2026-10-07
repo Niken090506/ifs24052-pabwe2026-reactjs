@@ -51,47 +51,11 @@ describe("userApi", () => {
         }),
       });
 
-      await expect(userApi.getUsers()).rejects.toThrow("Gagal mengambil data pengguna");
+      await expect(userApi.getUsers()).rejects.toThrow("Gagal mengambil daftar pengguna");
     });
   });
 
-  describe("getUserById", () => {
-    it("should return user object on success", async () => {
-      const mockUser = { id: 2, name: "Abdullah" };
-      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
-        json: async () => ({
-          status: "success",
-          data: { user: mockUser },
-        }),
-      });
-
-      const user = await userApi.getUserById(2);
-      expect(user).toEqual(mockUser);
-    });
-
-    it("should throw error on fail", async () => {
-      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
-        json: async () => ({
-          status: "fail",
-          message: "User tidak ditemukan",
-        }),
-      });
-
-      await expect(userApi.getUserById(99)).rejects.toThrow("User tidak ditemukan");
-    });
-
-    it("should use fallback error message when missing", async () => {
-      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
-        json: async () => ({
-          status: "fail",
-        }),
-      });
-
-      await expect(userApi.getUserById(99)).rejects.toThrow("Gagal mengambil detail pengguna");
-    });
-  });
-
-  describe("getProfile", () => {
+  describe("getMe", () => {
     it("should return profile user object on success", async () => {
       const mockUser = { id: 3, name: "Profile" };
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
@@ -101,7 +65,7 @@ describe("userApi", () => {
         }),
       });
 
-      const user = await userApi.getProfile();
+      const user = await userApi.getMe();
       expect(user).toEqual(mockUser);
     });
 
@@ -113,7 +77,7 @@ describe("userApi", () => {
         }),
       });
 
-      await expect(userApi.getProfile()).rejects.toThrow("Akses ditolak");
+      await expect(userApi.getMe()).rejects.toThrow("Akses ditolak");
     });
 
     it("should use fallback error message when missing", async () => {
@@ -123,22 +87,21 @@ describe("userApi", () => {
         }),
       });
 
-      await expect(userApi.getProfile()).rejects.toThrow("Gagal mengambil data profil");
+      await expect(userApi.getMe()).rejects.toThrow("Gagal mengambil data profil");
     });
   });
 
-  describe("putProfile", () => {
-    it("should update and return user data on success", async () => {
-      const mockUser = { id: 1, name: "Updated Name", email: "updated@del.org" };
+  describe("putMe", () => {
+    it("should update and return message on success", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
           status: "success",
-          data: { user: mockUser },
+          message: "Berhasil mengubah profil",
         }),
       });
 
-      const user = await userApi.putProfile("Updated Name", "updated@del.org");
-      expect(user).toEqual(mockUser);
+      const msg = await userApi.putMe("Updated Name", "updated@del.org");
+      expect(msg).toBe("Berhasil mengubah profil");
     });
 
     it("should throw error on fail", async () => {
@@ -149,7 +112,7 @@ describe("userApi", () => {
         }),
       });
 
-      await expect(userApi.putProfile("Updated Name", "updated@del.org")).rejects.toThrow(
+      await expect(userApi.putMe("Updated Name", "updated@del.org")).rejects.toThrow(
         "Email sudah digunakan"
       );
     });
@@ -161,13 +124,13 @@ describe("userApi", () => {
         }),
       });
 
-      await expect(userApi.putProfile("Name", "email")).rejects.toThrow(
+      await expect(userApi.putMe("Name", "email")).rejects.toThrow(
         "Gagal mengubah profil"
       );
     });
   });
 
-  describe("postProfilePhoto", () => {
+  describe("postMePhoto", () => {
     it("should post photo with FormData and return message on success", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
@@ -177,7 +140,7 @@ describe("userApi", () => {
       });
 
       const file = new File(["dummy"], "photo.png", { type: "image/png" });
-      const msg = await userApi.postProfilePhoto(file);
+      const msg = await userApi.postMePhoto(file);
       expect(msg).toBe("Berhasil mengubah foto profil");
     });
 
@@ -190,7 +153,7 @@ describe("userApi", () => {
       });
 
       const file = new Blob(["dummy"], { type: "image/png" });
-      const msg = await userApi.postProfilePhoto(file);
+      const msg = await userApi.postMePhoto(file);
       expect(msg).toBe("Berhasil");
     });
 
@@ -203,7 +166,7 @@ describe("userApi", () => {
       });
 
       const file = new File(["dummy"], "photo.png", { type: "image/png" });
-      await expect(userApi.postProfilePhoto(file)).rejects.toThrow("File tidak didukung");
+      await expect(userApi.postMePhoto(file)).rejects.toThrow("File tidak didukung");
     });
 
     it("should use fallback error message when missing", async () => {
@@ -214,13 +177,13 @@ describe("userApi", () => {
       });
 
       const file = new File(["dummy"], "photo.png", { type: "image/png" });
-      await expect(userApi.postProfilePhoto(file)).rejects.toThrow(
+      await expect(userApi.postMePhoto(file)).rejects.toThrow(
         "Gagal mengubah foto profil"
       );
     });
   });
 
-  describe("putProfilePassword", () => {
+  describe("putMePassword", () => {
     it("should update password and return message on success", async () => {
       vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
         json: async () => ({
@@ -229,19 +192,7 @@ describe("userApi", () => {
         }),
       });
 
-      const msg = await userApi.putProfilePassword("old123", "new123", "new123");
-      expect(msg).toBe("Berhasil mengubah kata sandi");
-    });
-
-    it("should fallback confirmation to newPassword when confirmation omitted", async () => {
-      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
-        json: async () => ({
-          status: "success",
-          message: "Berhasil mengubah kata sandi",
-        }),
-      });
-
-      const msg = await userApi.putProfilePassword("old123", "new123");
+      const msg = await userApi.putMePassword("old123", "new123");
       expect(msg).toBe("Berhasil mengubah kata sandi");
     });
 
@@ -254,7 +205,7 @@ describe("userApi", () => {
       });
 
       await expect(
-        userApi.putProfilePassword("wrong", "new123", "new123")
+        userApi.putMePassword("wrong", "new123")
       ).rejects.toThrow("Kata sandi lama keliru");
     });
 
@@ -266,7 +217,7 @@ describe("userApi", () => {
       });
 
       await expect(
-        userApi.putProfilePassword("wrong", "new123", "new123")
+        userApi.putMePassword("wrong", "new123")
       ).rejects.toThrow("Gagal mengubah kata sandi");
     });
   });

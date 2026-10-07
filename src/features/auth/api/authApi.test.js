@@ -42,7 +42,7 @@ describe("authApi", () => {
 
       await expect(
         authApi.postRegister("Delcom", "delcom@org.id", "123456")
-      ).rejects.toThrow("Gagal melakukan pendaftaran");
+      ).rejects.toThrow("Gagal mendaftarkan akun");
     });
 
     it("should handle when data object has no error messages", async () => {
@@ -57,22 +57,6 @@ describe("authApi", () => {
       await expect(
         authApi.postRegister("Delcom", "delcom@org.id", "123")
       ).rejects.toThrow("Data tidak valid");
-    });
-
-    it("should format detailed validation errors when present", async () => {
-      vi.spyOn(apiHelper, "fetchData").mockResolvedValue({
-        json: async () => ({
-          status: "fail",
-          message: "Data tidak valid",
-          data: {
-            email: ["Email sudah terdaftar."],
-          },
-        }),
-      });
-
-      await expect(
-        authApi.postRegister("Delcom", "delcom@org.id", "123")
-      ).rejects.toThrow("Data tidak valid: Email sudah terdaftar.");
     });
   });
 
@@ -116,7 +100,7 @@ describe("authApi", () => {
 
       await expect(
         authApi.postLogin("wrong@delcom.org", "wrong")
-      ).rejects.toThrow("Gagal login");
+      ).rejects.toThrow("Gagal masuk ke akun");
     });
   });
 
@@ -151,7 +135,7 @@ describe("authApi", () => {
         }),
       });
 
-      await expect(authApi.postLogout()).rejects.toThrow("Gagal logout");
+      await expect(authApi.postLogout()).rejects.toThrow("Gagal keluar dari akun");
     });
   });
 });

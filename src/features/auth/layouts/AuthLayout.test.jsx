@@ -4,57 +4,31 @@ import AuthLayout from "./AuthLayout";
 import { renderWithProviders } from "../../../test-utils";
 import apiHelper from "../../../helpers/apiHelper";
 
-const mockNavigate = vi.fn();
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
 describe("AuthLayout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should render branding and tabs", () => {
+  it("should render branding and layout content when user is not logged in", () => {
     vi.spyOn(apiHelper, "getAccessToken").mockReturnValue(null);
 
-    renderWithProviders(<AuthLayout />, {
-      preloadedState: {
-        profile: null,
-      },
-    });
+    renderWithProviders(<AuthLayout />);
 
-    expect(screen.getByText("Delcom Todo")).toBeInTheDocument();
-    expect(screen.getByText("Masuk Akun")).toBeInTheDocument();
-    expect(screen.getByText("Daftar Baru")).toBeInTheDocument();
+    expect(screen.getByText("Lost & Founds")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Temukan kembali barangmu, bantu orang lain menemukan miliknya."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("Praktikum PABWE 2026")).toBeInTheDocument();
   });
 
-  it("should navigate to home if user already logged in with profile", () => {
+  it("should redirect to / when access token exists", () => {
     vi.spyOn(apiHelper, "getAccessToken").mockReturnValue("valid-token");
 
-    renderWithProviders(<AuthLayout />, {
-      preloadedState: {
-        profile: { id: 1, name: "Logged In User" },
-        isProfile: true,
-      },
-    });
+    renderWithProviders(<AuthLayout />);
 
-    expect(mockNavigate).toHaveBeenCalledWith("/");
-  });
-
-  it("should stay on auth layout if isProfile is true but profile is null", () => {
-    vi.spyOn(apiHelper, "getAccessToken").mockReturnValue(null);
-
-    renderWithProviders(<AuthLayout />, {
-      preloadedState: {
-        profile: null,
-        isProfile: true,
-      },
-    });
-
-    expect(screen.getByText("Masuk Akun")).toBeInTheDocument();
+    // Since Navigate to="/" replace is returned, the layout content is not rendered
+    expect(screen.queryByText("Lost & Founds")).not.toBeInTheDocument();
   });
 });

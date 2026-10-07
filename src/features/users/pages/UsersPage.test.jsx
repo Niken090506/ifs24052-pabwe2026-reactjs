@@ -8,6 +8,7 @@ describe("UsersPage", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
+
   const mockUsers = [
     {
       id: 1,
@@ -32,33 +33,45 @@ describe("UsersPage", () => {
     },
   ];
 
-  it("should render users list, fallback initial avatar, and search users", () => {
+  it("should render users list, fallback initial avatar, and search users", async () => {
+    vi.spyOn(userAction, "asyncSetUsers").mockReturnValue(() => Promise.resolve());
+
     renderWithProviders(<UsersPage />, {
       preloadedState: {
         users: mockUsers,
       },
     });
 
-    expect(screen.getByText("Semua Pengguna")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Memuat pengguna…")).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Daftar Pengguna")).toBeInTheDocument();
     expect(screen.getByText("Abdullah")).toBeInTheDocument();
     expect(screen.getByText("Ubaid")).toBeInTheDocument();
     expect(screen.getAllByText("U").length).toBeGreaterThan(0); // initial avatar fallback
 
-    const searchInput = screen.getByTestId("search-user-input");
+    const searchInput = screen.getByLabelText("Cari pengguna");
     fireEvent.change(searchInput, { target: { value: "abdullah" } });
 
     expect(screen.getByText("Abdullah")).toBeInTheDocument();
     expect(screen.queryByText("Ubaid")).not.toBeInTheDocument();
   });
 
-  it("should handle state when users in store is null", () => {
+  it("should handle state when users in store is null/empty", async () => {
+    vi.spyOn(userAction, "asyncSetUsers").mockReturnValue(() => Promise.resolve());
+
     renderWithProviders(<UsersPage />, {
       preloadedState: {
-        users: null,
+        users: [],
       },
     });
 
-    expect(screen.getByText("Semua Pengguna")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Memuat pengguna…")).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Daftar Pengguna")).toBeInTheDocument();
   });
 
   it("should show empty state when no users found and not loading", async () => {
@@ -71,7 +84,7 @@ describe("UsersPage", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Tidak ada data pengguna ditemukan.")
+        screen.getByText("Tidak ada pengguna yang cocok.")
       ).toBeInTheDocument();
     });
   });
@@ -87,7 +100,7 @@ describe("UsersPage", () => {
       },
     });
 
-    expect(screen.getByText("Memuat daftar pengguna...")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Memuat pengguna…");
   });
 
   it("should not update loading state after unmount (isMounted guard)", async () => {
@@ -103,6 +116,5 @@ describe("UsersPage", () => {
     unmount();
     resolveLoad();
     await pendingPromise;
-    // No error = isMounted guard correctly prevents setState after unmount
   });
 });
